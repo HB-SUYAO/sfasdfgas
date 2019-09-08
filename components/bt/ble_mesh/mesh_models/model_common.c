@@ -262,11 +262,10 @@ int bt_mesh_client_init(struct bt_mesh_model *model)
 int bt_mesh_client_free_node(sys_slist_t *queue, bt_mesh_client_node_t *node)
 {
     if (!queue || !node) {
+        BT_ERR("%s, Invalid parameter", __func__);
         return -EINVAL;
     }
 
-    // Free the node timer
-    k_delayed_work_free(&node->timer);
     // Release the client node from the queue
     sys_slist_find_and_remove(queue, &node->client_node);
     // Free the node
