@@ -76,7 +76,7 @@ COMPONENT_ADD_INCLUDEDIRS +=    bluedroid/api/include/api       \
 ifdef CONFIG_BLE_MESH
     COMPONENT_ADD_INCLUDEDIRS += ble_mesh/mesh_core                  \
                                  ble_mesh/mesh_core/include          \
-                                 ble_mesh/mesh_core/settings/include \
+                                 ble_mesh/mesh_core/settings         \
                                  ble_mesh/btc/include                \
                                  ble_mesh/mesh_models/include        \
                                  ble_mesh/api/core/include           \

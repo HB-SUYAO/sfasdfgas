@@ -13,6 +13,10 @@
 #include "mesh_access.h"
 #include "mesh_bearer_adapt.h"
 
+int settings_core_init(void);
+int settings_core_load(void);
+int settings_core_commit(void);
+
 void bt_mesh_store_net(void);
 void bt_mesh_store_iv(void);
 void bt_mesh_store_seq(void);
