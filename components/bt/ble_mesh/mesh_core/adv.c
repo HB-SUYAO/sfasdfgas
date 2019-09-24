@@ -389,8 +389,10 @@ void bt_mesh_adv_init(void)
 {
     /* Change by Espressif, we should used the FreeRTOS create task method to use task */
     xBleMeshQueue = xQueueCreate(150, sizeof(bt_mesh_msg_t));
-    xTaskCreatePinnedToCore(adv_thread, "BLE_Mesh_ADV_Task", 3072, NULL,
-                            configMAX_PRIORITIES - 7, NULL, TASK_PINNED_TO_CORE);
+    configASSERT(xBleMeshQueue);
+    int ret = xTaskCreatePinnedToCore(adv_thread, "BLE_Mesh_ADV_Task", 3072, NULL,
+                configMAX_PRIORITIES - 7, NULL, TASK_PINNED_TO_CORE);
+    configASSERT(ret == pdTRUE);
 }
 
 int bt_mesh_scan_enable(void)
