@@ -1291,6 +1291,7 @@ void bt_mesh_store_role(u8_t role)
 {
     BT_DBG("Device role 0x%02x", dev_role);
 
+    dev_role = role;
     bt_mesh_save_core_settings("mesh/role", (const u8_t *)&role, sizeof(role));
 }
 
