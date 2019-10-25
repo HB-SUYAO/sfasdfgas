@@ -148,6 +148,19 @@ static bool msg_cache_match(struct bt_mesh_net_rx *rx,
     return false;
 }
 
+void bt_mesh_msg_cache_clear(u16_t unicast_addr, u8_t elem_num)
+{
+    u16_t src;
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(msg_cache); i++) {
+        src = (((u8_t)(msg_cache[i] >> 16)) << 8) | (u8_t)(msg_cache[i] >> 24);
+        if (src >= unicast_addr && src < unicast_addr + elem_num) {
+            memset(&msg_cache[i], 0x0, sizeof(msg_cache[i]));
+        }
+    }
+}
+
 struct bt_mesh_subnet *bt_mesh_subnet_get(u16_t net_idx)
 {
     int i;
@@ -740,7 +753,7 @@ u32_t bt_mesh_next_seq(void)
 {
     u32_t seq = bt_mesh.seq++;
 
-    if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
+    if (IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
         bt_mesh_store_seq();
     }
 
@@ -1024,11 +1037,6 @@ static int net_decrypt(struct bt_mesh_subnet *sub, const u8_t *enc,
         return -ENOENT;
     }
 
-    /* TODO: For provisioner, when a device is re-provisioned and start to
-     * send the same message(e.g. cfg_appkey_add), the status message is easy
-     * to be filtered here. So when a device is re-provisioned, the related
-     * msg_cache should be cleared. Will do it later.
-     */
     if (rx->net_if == BLE_MESH_NET_IF_ADV && msg_cache_match(rx, buf)) {
         BT_WARN("Duplicate found in Network Message Cache");
         return -EALREADY;
@@ -1416,7 +1424,7 @@ void bt_mesh_net_recv(struct net_buf_simple *data, s8_t rssi,
         BT_WARN("%s, Provisioner is disabled", __func__);
         return;
     }
-    if (!provisioner_get_prov_node_count()) {
+    if (!provisioner_get_node_count()) {
         return;
     }
 #endif

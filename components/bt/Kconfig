@@ -1455,7 +1455,7 @@ if BLE_MESH
         config BLE_MESH_SEQ_STORE_RATE
             int "How often the sequence number gets updated in storage"
             range 0 1000000
-            default 128
+            default 6
             help
                 This value defines how often the local sequence number gets updated in
                 persistent storage (i.e. flash). e.g. a value of 100 means that the

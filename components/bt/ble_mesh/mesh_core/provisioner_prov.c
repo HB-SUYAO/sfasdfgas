@@ -227,9 +227,6 @@ struct prov_ctx_t {
     /* Provisioner random */
     u8_t  random[16];
 
-    /* Number of provisioned devices */
-    u16_t node_count;
-
     /* Current number of PB-ADV provisioned devices simultaneously */
     u8_t  pba_count;
 
@@ -283,20 +280,6 @@ struct prov_ctx_t {
 };
 
 static struct prov_ctx_t prov_ctx;
-
-struct prov_node_info {
-    bool  provisioned;      /* device provisioned flag */
-    bt_mesh_addr_t addr;    /* device address */
-    u8_t  uuid[16];         /* node uuid */
-    u16_t oob_info;         /* oob info contained in adv pkt */
-    u8_t  element_num;      /* element contained in this node */
-    u16_t unicast_addr;     /* primary unicast address of this node */
-    u16_t net_idx;          /* Netkey index got during provisioning */
-    u8_t  flags;            /* Key refresh flag and iv update flag */
-    u32_t iv_index;         /* IV Index */
-};
-
-static struct prov_node_info prov_nodes[CONFIG_BLE_MESH_MAX_PROV_NODES];
 
 struct unprov_dev_queue {
     bt_mesh_addr_t addr;
@@ -430,23 +413,6 @@ const struct bt_mesh_prov *provisioner_get_prov_info(void)
     return prov;
 }
 
-int provisioner_prov_reset_all_nodes(void)
-{
-    int i;
-
-    BT_DBG("%s", __func__);
-
-    for (i = 0; i < ARRAY_SIZE(prov_nodes); i++) {
-        if (prov_nodes[i].provisioned) {
-            memset(&prov_nodes[i], 0, sizeof(struct prov_node_info));
-        }
-    }
-
-    prov_ctx.node_count = 0;
-
-    return 0;
-}
-
 static int provisioner_dev_find(const bt_mesh_addr_t *addr, const u8_t uuid[16], int *index)
 {
     bool uuid_match = false;
@@ -517,13 +483,9 @@ static bool is_unprov_dev_being_provision(const u8_t uuid[16])
      * Unprovisioned Device Beacon when Transaction ACK for Provisioning Complete
      * is received). So in Fast Provisioning the Provisioner should ignore this.
      */
-    for (i = 0; i < ARRAY_SIZE(prov_nodes); i++) {
-        if (prov_nodes[i].provisioned) {
-            if (!memcmp(prov_nodes[i].uuid, uuid, 16)) {
-                BT_WARN("Device has already been provisioned");
-                return -EALREADY;
-            }
-        }
+    if (provisioner_find_reset_node_with_uuid(uuid, false)) {
+        BT_WARN("Device has already been provisioned");
+        return -EALREADY;
     }
 #endif
 
@@ -560,8 +522,6 @@ static bool is_unprov_dev_uuid_match(const u8_t uuid[16])
 
 static int provisioner_check_unprov_dev_info(const u8_t uuid[16])
 {
-    int i;
-
     if (!uuid) {
         BT_ERR("%s, Invalid parameter", __func__);
         return -EINVAL;
@@ -584,22 +544,13 @@ static int provisioner_check_unprov_dev_info(const u8_t uuid[16])
     }
 
     /* Check if the device has already been provisioned */
-    for (i = 0; i < ARRAY_SIZE(prov_nodes); i++) {
-        if (prov_nodes[i].provisioned) {
-            if (!memcmp(prov_nodes[i].uuid, uuid, 16)) {
-                BT_WARN("Provisioned before, start to provision again");
-                provisioner_node_reset(i);
-                memset(&prov_nodes[i], 0, sizeof(struct prov_node_info));
-                if (prov_ctx.node_count) {
-                    prov_ctx.node_count--;
-                }
-                return 0;
-            }
-        }
+    if (provisioner_find_reset_node_with_uuid(uuid, true)) {
+        BT_WARN("Provisioned before, start to provision again");
+        return 0;
     }
 
-    /* Check if the prov_nodes queue is full */
-    if (prov_ctx.node_count == ARRAY_SIZE(prov_nodes)) {
+    /* Check if the provisioned nodes queue is full */
+    if (provisioner_get_prov_node_count() == CONFIG_BLE_MESH_MAX_PROV_NODES) {
         BT_WARN("Current provisioned devices reach max limit");
         return -ENOMEM;
     }
@@ -808,8 +759,8 @@ start:
     }
 
     /* Check if current provisioned node count + active link reach max limit */
-    if (prov_ctx.node_count + prov_ctx.pba_count + \
-        prov_ctx.pbg_count >= ARRAY_SIZE(prov_nodes)) {
+    if (provisioner_get_prov_node_count() + prov_ctx.pba_count + \
+        prov_ctx.pbg_count >= CONFIG_BLE_MESH_MAX_PROV_NODES) {
         BT_WARN("%s, Node count + active link count reach max limit", __func__);
         return -EIO;
     }
@@ -853,7 +804,7 @@ int bt_mesh_provisioner_delete_device(struct bt_mesh_device_delete *del_dev)
      * 2. device is being provisioned, need to close link & remove from device queue.
      * 3. device is been provisioned, need to send config_node_reset and may need to
      *    remove from device queue. config _node_reset can be added in function
-     *    provisioner_node_reset() in provisioner_main.c.
+     *    provisioner_reset_node() in provisioner_main.c.
      */
     bt_mesh_addr_t del_addr = {0};
     u8_t zero[16] = {0};
@@ -906,25 +857,15 @@ int bt_mesh_provisioner_delete_device(struct bt_mesh_device_delete *del_dev)
     }
 
     /* Third: find if the device is been provisioned */
-    for (i = 0; i < ARRAY_SIZE(prov_nodes); i++) {
-        if (addr_cmp && (del_dev->addr_type <= BLE_MESH_ADDR_RANDOM)) {
-            if (!memcmp(prov_nodes[i].addr.val, del_dev->addr, BLE_MESH_ADDR_LEN) &&
-                    prov_nodes[i].addr.type == del_dev->addr_type) {
-                addr_match = true;
-            }
+    if (addr_cmp && (del_dev->addr_type <= BLE_MESH_ADDR_RANDOM)) {
+        if (provisioner_find_reset_node_with_addr(&del_addr, true)) {
+            return 0;
         }
-        if (uuid_cmp) {
-            if (!memcmp(prov_nodes[i].uuid, del_dev->uuid, 16)) {
-                uuid_match = true;
-            }
-        }
-        if (addr_match || uuid_match) {
-            memset(&prov_nodes[i], 0, sizeof(struct prov_node_info));
-            provisioner_node_reset(i);
-            if (prov_ctx.node_count) {
-                prov_ctx.node_count--;
-            }
-            break;
+    }
+
+    if (uuid_cmp) {
+        if (provisioner_find_reset_node_with_uuid(del_dev->uuid, true)) {
+            return 0;
         }
     }
 
@@ -2370,7 +2311,9 @@ fail:
 static void prov_complete(const u8_t *data)
 {
     u8_t device_key[16];
-    int i = prov_get_pb_index(), j;
+    int i = prov_get_pb_index();
+    u16_t net_idx;
+    int index;
     int err, rm = 0;
 
     /* Make sure received pdu is ok and cancel the timeout timer */
@@ -2378,10 +2321,6 @@ static void prov_complete(const u8_t *data)
         k_delayed_work_cancel(&link[i].timeout);
     }
 
-    /* If provisioning complete is received, the provisioning device
-     * will be stored into the prov_node_info structure and become a
-     * node within the mesh network
-     */
     err = bt_mesh_dev_key(link[i].dhkey, link[i].prov_salt, device_key);
     if (err) {
         BT_ERR("%s, Failed to generate device key", __func__);
@@ -2389,38 +2328,15 @@ static void prov_complete(const u8_t *data)
         return;
     }
 
-    for (j = 0; j < ARRAY_SIZE(prov_nodes); j++) {
-        if (!prov_nodes[j].provisioned) {
-            prov_nodes[j].provisioned = true;
-            prov_nodes[j].oob_info = link[i].oob_info;
-            prov_nodes[j].element_num = link[i].element_num;
-            prov_nodes[j].unicast_addr = link[i].unicast_addr;
-            if (FAST_PROV_FLAG_GET()) {
-                prov_nodes[j].net_idx = fast_prov_info.net_idx;
-            } else {
-                prov_nodes[j].net_idx = prov_ctx.curr_net_idx;
-            }
-            prov_nodes[j].flags = link[i].ki_flags;
-            prov_nodes[j].iv_index = link[i].iv_index;
-            prov_nodes[j].addr.type = link[i].addr.type;
-            memcpy(prov_nodes[j].addr.val, link[i].addr.val, BLE_MESH_ADDR_LEN);
-            memcpy(prov_nodes[j].uuid, link[i].uuid, 16);
-            break;
-        }
+    if (FAST_PROV_FLAG_GET()) {
+        net_idx = fast_prov_info.net_idx;
+    } else {
+        net_idx = prov_ctx.curr_net_idx;
     }
 
-    if (j == ARRAY_SIZE(prov_nodes)) {
-        BT_ERR("%s, Provisioned node queue is full", __func__);
-        close_link(i, CLOSE_REASON_FAILED);
-        return;
-    }
-
-    prov_ctx.node_count++;
-
-    err = provisioner_node_provision(j, prov_nodes[j].uuid, prov_nodes[j].oob_info,
-                prov_nodes[j].unicast_addr, prov_nodes[j].element_num,
-                prov_nodes[j].net_idx, prov_nodes[j].flags,
-                prov_nodes[j].iv_index, device_key);
+    err = provisioner_node_provision(&link[i].addr, link[i].uuid, link[i].oob_info,
+            link[i].unicast_addr, link[i].element_num, net_idx,
+            link[i].ki_flags, link[i].iv_index, device_key, &index);
     if (err) {
         BT_ERR("%s, Failed to store node info", __func__);
         close_link(i, CLOSE_REASON_FAILED);
@@ -2428,8 +2344,8 @@ static void prov_complete(const u8_t *data)
     }
 
     if (prov->prov_complete) {
-        prov->prov_complete(j, prov_nodes[j].uuid, prov_nodes[j].unicast_addr,
-                            prov_nodes[j].element_num, prov_nodes[j].net_idx);
+        prov->prov_complete(index, link[i].uuid, link[i].unicast_addr,
+                            link[i].element_num, net_idx);
     }
 
     err = provisioner_dev_find(&link[i].addr, link[i].uuid, &rm);

@@ -92,14 +92,6 @@ int bt_mesh_client_send_msg(struct bt_mesh_model *model,
 
 int bt_mesh_client_free_node(bt_mesh_client_node_t *node);
 
-enum {
-    NODE = 0,
-    PROVISIONER,
-    FAST_PROV,
-};
-
-#define ROLE_NVAL 0xFF
-
 struct bt_mesh_common_param {
     u32_t opcode;                     /* Message opcode           */
     struct bt_mesh_model *model;      /* Pointer to cli structure */

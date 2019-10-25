@@ -22,12 +22,11 @@
 
 #define MESH_NAME_SIZE  31
 
-#if CONFIG_BLE_MESH_PROVISIONER
-
 /* Each node information stored by provisioner */
 struct bt_mesh_node_t {
     char  node_name[MESH_NAME_SIZE];    /* Node name */
-    u8_t  dev_uuid[16];                 /* Device UUID pointer, stored in provisioner_prov.c */
+    bt_mesh_addr_t addr;                /* Device address */
+    u8_t  dev_uuid[16];                 /* Device UUID */
     u16_t oob_info;                     /* Node OOB information */
     u16_t unicast_addr;                 /* Node unicast address */
     u8_t  element_num;                  /* Node element number */
@@ -39,13 +38,21 @@ struct bt_mesh_node_t {
 
 /* The following APIs are for key init, node provision & node reset. */
 
-int provisioner_node_provision(int node_index, const u8_t uuid[16], u16_t oob_info,
-                               u16_t unicast_addr, u8_t element_num, u16_t net_idx,
-                               u8_t flags, u32_t iv_index, const u8_t dev_key[16]);
+void bt_mesh_provisioner_mutex_new(void);
 
-int provisioner_node_reset(int node_index);
+u16_t provisioner_get_prov_node_count(void);
 
-int provisioner_upper_reset_all_nodes(void);
+u16_t provisioner_get_node_count(void);
+
+int provisioner_node_provision(const bt_mesh_addr_t *addr, const u8_t uuid[16], u16_t oob_info,
+                               u16_t unicast_addr, u8_t element_num, u16_t net_idx, u8_t flags,
+                               u32_t iv_index, const u8_t dev_key[16], int *index);
+
+bool provisioner_find_reset_node_with_uuid(const u8_t uuid[16], bool reset);
+
+bool provisioner_find_reset_node_with_addr(const bt_mesh_addr_t *addr, bool reset);
+
+int provisioner_reset_all_nodes(void);
 
 int provisioner_upper_init(void);
 
@@ -61,13 +68,9 @@ const u8_t *provisioner_get_device_key(u16_t dst_addr);
 
 struct bt_mesh_app_key *provisioner_app_key_find(u16_t app_idx);
 
-u32_t provisioner_get_prov_node_count(void);
-
 /* The following APIs are for provisioner application use. */
 
-int bt_mesh_provisioner_store_node_info(struct bt_mesh_node_t *node_info);
-
-int bt_mesh_provisioner_get_all_node_unicast_addr(struct net_buf_simple *buf);
+int bt_mesh_provisioner_store_node_info(struct bt_mesh_node_t *node, bool prov);
 
 int bt_mesh_provisioner_set_node_name(int node_index, const char *name);
 
@@ -104,8 +107,6 @@ int bt_mesh_provisioner_bind_local_app_net_idx(u16_t net_idx, u16_t app_idx);
 
 /* Provisioner print own element information */
 int bt_mesh_provisioner_print_local_element_info(void);
-
-#endif /* CONFIG_BLE_MESH_PROVISIONER */
 
 /* The following APIs are for fast provisioning */
 

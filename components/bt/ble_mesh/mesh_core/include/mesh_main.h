@@ -276,6 +276,13 @@ struct bt_mesh_prov {
 #endif /* CONFIG_BLE_MESH_PROVISIONER */
 };
 
+enum ble_mesh_role {
+    NODE = 0,
+    PROVISIONER,
+    FAST_PROV,
+    ROLE_NVAL,
+};
+
 /** @brief Provide provisioning input OOB string.
  *
  *  This is intended to be called after the bt_mesh_prov input callback

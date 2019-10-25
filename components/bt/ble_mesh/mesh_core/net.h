@@ -316,6 +316,8 @@ extern struct bt_mesh_net bt_mesh;
 
 #define BLE_MESH_NET_HDR_LEN 9
 
+void bt_mesh_msg_cache_clear(u16_t unicast_addr, u8_t elem_num);
+
 int bt_mesh_net_keys_create(struct bt_mesh_subnet_keys *keys,
                             const u8_t key[16]);
 

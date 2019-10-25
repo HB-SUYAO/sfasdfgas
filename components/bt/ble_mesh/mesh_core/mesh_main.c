@@ -160,11 +160,11 @@ void bt_mesh_reset(void)
         bt_mesh_proxy_gatt_disable();
     }
 
-#if defined(CONFIG_BLE_MESH_SETTINGS)
     if (IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
         bt_mesh_clear_net();
+        bt_mesh_clear_role();
     }
-#endif
+
     memset(bt_mesh.dev_key, 0, sizeof(bt_mesh.dev_key));
 
     memset(bt_mesh.rpl, 0, sizeof(bt_mesh.rpl));
@@ -206,6 +206,10 @@ int bt_mesh_prov_enable(bt_mesh_prov_bearer_t bearers)
         bt_mesh_adv_update();
     }
 
+    if(IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
+        bt_mesh_store_role(NODE);
+    }
+
     provisioner_en = false;
 
     return 0;
@@ -227,6 +231,10 @@ int bt_mesh_prov_disable(bt_mesh_prov_bearer_t bearers)
             (bearers & BLE_MESH_PROV_GATT)) {
         bt_mesh_proxy_prov_disable();
         bt_mesh_adv_update();
+    }
+
+    if(IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
+        bt_mesh_clear_role();
     }
 
     return 0;
@@ -291,6 +299,10 @@ int bt_mesh_provisioner_enable(bt_mesh_prov_bearer_t bearers)
         provisioner_pb_gatt_enable();
     }
 
+    if(IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
+        bt_mesh_store_role(PROVISIONER);
+    }
+
     provisioner_en = true;
 
     return 0;
@@ -313,6 +325,10 @@ int bt_mesh_provisioner_disable(bt_mesh_prov_bearer_t bearers)
             (IS_ENABLED(CONFIG_BLE_MESH_PB_GATT) &&
              (bearers & BLE_MESH_PROV_GATT))) {
         bt_mesh_scan_disable();
+    }
+
+    if(IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
+        bt_mesh_clear_role();
     }
 
     provisioner_en = false;
@@ -375,8 +391,7 @@ u8_t bt_mesh_set_fast_prov_action(u8_t action)
         provisioner_set_fast_prov_flag(false);
         provisioner_en = false;
         if (action == ACTION_EXIT) {
-            provisioner_upper_reset_all_nodes();
-            provisioner_prov_reset_all_nodes();
+            provisioner_reset_all_nodes();
         }
     }
 
@@ -461,18 +476,16 @@ int bt_mesh_init(const struct bt_mesh_prov *prov,
 #endif
     }
 
+    if (IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
+        bt_mesh_settings_init();
+    }
+
 #if !CONFIG_BLE_MESH_NODE && CONFIG_BLE_MESH_PROVISIONER
     /* If node & provisioner are both enabled and the
      * device starts as a node, it must finish provisioning */
     err = provisioner_upper_init();
     if (err) {
         return err;
-    }
-#endif
-
-#if defined(CONFIG_BLE_MESH_SETTINGS)
-    if (IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
-        bt_mesh_settings_init();
     }
 #endif
 

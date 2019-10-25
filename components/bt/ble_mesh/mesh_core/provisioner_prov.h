@@ -202,13 +202,6 @@ void provisioner_srv_data_recv(struct net_buf_simple *buf, const bt_mesh_addr_t 
  */
 const struct bt_mesh_prov *provisioner_get_prov_info(void);
 
-/**
- * @brief This function resets all nodes information in provisioner_prov.c.
- *
- * @return Zero
- */
-int provisioner_prov_reset_all_nodes(void);
-
 /* The following APIs are for primary provisioner application use */
 
 /** @brief Add unprovisioned device info to unprov_dev queue
