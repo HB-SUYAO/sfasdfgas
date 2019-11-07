@@ -38,8 +38,6 @@ struct bt_mesh_node_t {
 
 /* The following APIs are for key init, node provision & node reset. */
 
-void bt_mesh_provisioner_mutex_new(void);
-
 u16_t provisioner_get_prov_node_count(void);
 
 u16_t provisioner_get_node_count(void);
@@ -54,7 +52,9 @@ bool provisioner_find_reset_node_with_addr(const bt_mesh_addr_t *addr, bool rese
 
 int provisioner_reset_all_nodes(void);
 
-int provisioner_upper_init(void);
+int bt_mesh_provisioner_init(void);
+
+int bt_mesh_provisioner_net_create(void);
 
 /* The following APIs are for provisioner upper layers internal usage. */
 

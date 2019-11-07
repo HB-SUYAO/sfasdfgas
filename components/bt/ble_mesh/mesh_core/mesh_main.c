@@ -258,9 +258,9 @@ int bt_mesh_provisioner_enable(bt_mesh_prov_bearer_t bearers)
         return -EALREADY;
     }
 
-    err = provisioner_upper_init();
+    err = bt_mesh_provisioner_net_create();
     if (err) {
-        BT_ERR("%s, provisioner_upper_init fail", __func__);
+        BT_ERR("%s, bt_mesh_provisioner_net_create fail", __func__);
         return err;
     }
 
@@ -476,18 +476,13 @@ int bt_mesh_init(const struct bt_mesh_prov *prov,
 #endif
     }
 
+    if (IS_ENABLED(CONFIG_BLE_MESH_PROVISIONER)) {
+        bt_mesh_provisioner_init();
+    }
+
     if (IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
         bt_mesh_settings_init();
     }
-
-#if !CONFIG_BLE_MESH_NODE && CONFIG_BLE_MESH_PROVISIONER
-    /* If node & provisioner are both enabled and the
-     * device starts as a node, it must finish provisioning */
-    err = provisioner_upper_init();
-    if (err) {
-        return err;
-    }
-#endif
 
     return 0;
 }

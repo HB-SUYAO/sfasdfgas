@@ -1115,10 +1115,6 @@ int settings_core_load(void)
                 BT_DBG("Device just starts up");
                 return 0;
             }
-
-            if (IS_ENABLED(CONFIG_BLE_MESH_PROVISIONER) && dev_role == PROVISIONER) {
-                bt_mesh_provisioner_mutex_new();
-            }
         }
     }
 

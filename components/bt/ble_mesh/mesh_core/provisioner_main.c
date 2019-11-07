@@ -45,9 +45,9 @@ static osi_mutex_t provisioner_mutex;
 static u16_t all_node_count;
 static u16_t prov_node_count;
 
-static bool prov_upper_init = false;
+static bool prov_net_create = false;
 
-void bt_mesh_provisioner_mutex_new(void)
+static void bt_mesh_provisioner_mutex_new(void)
 {
     if (!provisioner_mutex) {
         osi_mutex_new(&provisioner_mutex);
@@ -303,7 +303,14 @@ int provisioner_reset_all_nodes(void)
     return 0;
 }
 
-int provisioner_upper_init(void)
+int bt_mesh_provisioner_init(void)
+{
+    bt_mesh_provisioner_mutex_new();
+
+    return 0;
+}
+
+int bt_mesh_provisioner_net_create(void)
 {
     struct bt_mesh_subnet *sub = NULL;
     u8_t p_key[16] = {0};
@@ -311,7 +318,7 @@ int provisioner_upper_init(void)
 
     BT_DBG("%s", __func__);
 
-    if (prov_upper_init) {
+    if (prov_net_create) {
         return 0;
     }
 
@@ -393,12 +400,10 @@ int provisioner_upper_init(void)
     }
 
 end:
-    prov_upper_init = true;
+    prov_net_create = true;
 
     BT_DBG("net_idx 0x%03x, netkey %s, nid 0x%02x",
         sub->net_idx, bt_hex(sub->keys[0].net, 16), sub->keys[0].nid);
-
-    bt_mesh_provisioner_mutex_new();
 
     return 0;
 }
