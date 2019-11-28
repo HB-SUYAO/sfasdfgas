@@ -30,7 +30,7 @@ that are implemented in C.
 
 
 #ifdef XT_BOARD
-#include "xtensa/xtbsp.h"
+#include    <xtensa/xtbsp.h>
 #endif
 
 #include "xtensa_rtos.h"

@@ -41,7 +41,7 @@ void suspended_task(void *arg)
     }
 }
 
-TEST_CASE("Test eTaskGetState", "[freertos]")
+TEST_CASE("Test eTaskGetState", "[freertos] [ignore]")
 {
     done_sem = xQueueCreateCountingSemaphore(portNUM_PROCESSORS, 0);
     //Create blocked and suspended task

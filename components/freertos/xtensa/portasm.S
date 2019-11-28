@@ -188,6 +188,7 @@ _frxt_int_exit:
     l32i    a2,  a2, 0                  /* a2 = port_xSchedulerRunning     */
     beqz    a2,  .Lnoswitch             /* scheduler not running, no tasks */
     l32i    a2,  a3, 0                  /* a2 = port_interruptNesting      */
+    beqz    a2, .Lskipdecrement
     addi    a2,  a2, -1                 /* decrement nesting count         */
     s32i    a2,  a3, 0                  /* save nesting count              */
     bnez    a2,  .Lnesting              /* !=0 after decr so still nested  */
@@ -201,6 +202,7 @@ _frxt_int_exit:
     #endif
     #endif
 
+.Lskipdecrement:
     movi    a2,  pxCurrentTCB
 	addx4	a2,  a4, a2
     l32i    a2,  a2, 0                  /* a2 = current TCB                */
