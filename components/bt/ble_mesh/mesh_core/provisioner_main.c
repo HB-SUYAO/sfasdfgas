@@ -647,6 +647,16 @@ struct bt_mesh_node_t *bt_mesh_provisioner_get_node_info(u16_t unicast_addr)
     return NULL;
 }
 
+struct bt_mesh_node_t *bt_mesh_provisioner_get_node_entry(void)
+{
+    return mesh_nodes[0];
+}
+
+u16_t bt_mesh_provisioner_get_node_count(void)
+{
+    return prov_node_count;
+}
+
 u32_t bt_mesh_provisioner_get_net_key_count(void)
 {
     return ARRAY_SIZE(bt_mesh.p_sub);

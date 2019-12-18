@@ -80,6 +80,10 @@ int bt_mesh_provisioner_get_node_index(const char *name);
 
 struct bt_mesh_node_t *bt_mesh_provisioner_get_node_info(u16_t unicast_addr);
 
+struct bt_mesh_node_t *bt_mesh_provisioner_get_node_entry(void);
+
+u16_t bt_mesh_provisioner_get_node_count(void);
+
 u32_t bt_mesh_provisioner_get_net_key_count(void);
 
 u32_t bt_mesh_provisioner_get_app_key_count(void);
