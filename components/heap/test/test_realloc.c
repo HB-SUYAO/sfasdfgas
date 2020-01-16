@@ -12,9 +12,10 @@
 
 #ifndef CONFIG_HEAP_POISONING_COMPREHENSIVE
 /* (can't realloc in place if comprehensive is enabled) */
-
-TEST_CASE("realloc shrink buffer in place", "[heap]")
-{    
+/* Due nature of TLSF realloc may not shrink in place */
+TEST_CASE("realloc shrink buffer in place", "[heap][ignore]")
+{
+    void *p = NULL;
     void *x = malloc(64);
     TEST_ASSERT(x);
     void *y = realloc(x, 48);

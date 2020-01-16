@@ -28,7 +28,6 @@ TEST_CASE("Capabilities aligned allocator test", "[heap]")
             printf("[ALIGNED_ALLOC] alignment required: %u \n", alignments);
             printf("[ALIGNED_ALLOC] address of allocated memory: %p \n\n", (void *)buf);
             //Address of obtained block must be aligned with selected value
-
             if((alignments & 0x03) == 0) {
                 //Alignment is a multiple of four:
                 TEST_ASSERT(((intptr_t)buf & 0x03) == 0);
@@ -41,7 +40,7 @@ TEST_CASE("Capabilities aligned allocator test", "[heap]")
             //canary verification will fail:
             memset(buf, 0xA5, (alignments + 137));
 
-            heap_caps_aligned_free(buf);    
+            heap_caps_free(buf);    
         }
     } 
 
@@ -71,10 +70,12 @@ TEST_CASE("Capabilities aligned allocator test", "[heap]")
                 //Exotic alignments:
                 TEST_ASSERT(((intptr_t)buf & (alignments - 1)) == 0);
             }
+
+
             //Write some data, if it corrupts memory probably the heap
             //canary verification will fail:
             memset(buf, 0xA5, (10*1024));
-            heap_caps_aligned_free(buf);    
+            heap_caps_free(buf);    
         }
     } 
 #endif
@@ -109,7 +110,7 @@ TEST_CASE("Capabilities aligned calloc test", "[heap]")
             //canary verification will fail:
             memset(buf, 0xA5, (alignments + 137));
 
-            heap_caps_aligned_free(buf);    
+            heap_caps_free(buf);    
         }
     } 
 
@@ -118,12 +119,12 @@ TEST_CASE("Capabilities aligned calloc test", "[heap]")
     memset(&byte_array, 0, sizeof(byte_array));
     uint8_t *buf = (uint8_t *)heap_caps_aligned_calloc(1024, 1, 1024, MALLOC_CAP_DEFAULT);
     TEST_ASSERT(memcmp(byte_array, buf, sizeof(byte_array)) == 0);
-    heap_caps_aligned_free(buf);
+    heap_caps_free(buf);
 
     //Same size, but different chunk:
     buf = (uint8_t *)heap_caps_aligned_calloc(1024, 1024, 1, MALLOC_CAP_DEFAULT);
     TEST_ASSERT(memcmp(byte_array, buf, sizeof(byte_array)) == 0);
-    heap_caps_aligned_free(buf);
+    heap_caps_free(buf);
 
     //Alloc from a non permitted area:
     uint32_t *not_permitted_buf = (uint32_t *)heap_caps_aligned_calloc(alignments, 1, (alignments + 137), MALLOC_CAP_32BIT);
@@ -154,7 +155,7 @@ TEST_CASE("Capabilities aligned calloc test", "[heap]")
             //Write some data, if it corrupts memory probably the heap
             //canary verification will fail:
             memset(buf, 0xA5, (10*1024));
-            heap_caps_aligned_free(buf);    
+            heap_caps_free(buf);    
         }
     } 
 #endif

@@ -568,14 +568,3 @@ void *heap_caps_aligned_calloc(size_t alignment, size_t n, size_t size, uint32_t
 
     return ptr;
 }
-
-IRAM_ATTR void heap_caps_aligned_free(void *ptr)
-{
-    if (ptr == NULL) {
-        return;
-    }
-
-    heap_t *heap = find_containing_heap(ptr);
-    assert(heap != NULL && "free() target pointer is outside heap areas");
-    multi_heap_aligned_free(heap->heap, ptr);
-}

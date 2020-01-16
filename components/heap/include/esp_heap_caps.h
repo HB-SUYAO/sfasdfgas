@@ -123,15 +123,6 @@ void *heap_caps_aligned_alloc(size_t alignment, size_t size, int caps);
  */
 void *heap_caps_aligned_calloc(size_t alignment, size_t n, size_t size, uint32_t caps);
 
-/**
- * @brief Used to deallocate memory previously allocated with heap_caps_aligned_alloc
- * 
- * @param ptr Pointer to the memory allocated
- * @note This function is aimed to deallocate only memory allocated with
- *       heap_caps_aligned_alloc, memory allocated with heap_caps_malloc
- *       MUST not be passed to this function
- */
-void heap_caps_aligned_free(void *ptr);
 
 /**
  * @brief Allocate a chunk of memory which has the given capabilities. The initialized value in the memory is set to zero.

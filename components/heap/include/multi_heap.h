@@ -51,14 +51,6 @@ void *multi_heap_aligned_alloc(multi_heap_handle_t heap, size_t size, size_t ali
  */
 void *multi_heap_malloc(multi_heap_handle_t heap, size_t size);
 
-/** @brief free() a buffer aligned in a given heap.
- *
- * @param heap Handle to a registered heap.
- * @param p NULL, or a pointer previously returned from multi_heap_aligned_alloc() for the same heap.
- */
-void multi_heap_aligned_free(multi_heap_handle_t heap, void *p);
-
-
 /** @brief free() a buffer in a given heap.
  *
  * Semantics are the same as standard free(), only the argument 'p' must be NULL or have been allocated in the specified heap.

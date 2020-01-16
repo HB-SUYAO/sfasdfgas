@@ -241,21 +241,6 @@ void *multi_heap_malloc(multi_heap_handle_t heap, size_t size)
     return data;
 }
 
-void multi_heap_aligned_free(multi_heap_handle_t heap, void *p)
-{
-    multi_heap_internal_lock(heap);
-    poison_head_t *head = verify_allocated_region(p, true);
-    assert(head != NULL); 
-
-#ifdef SLOW
-    /* replace everything with FREE_FILL_PATTERN, including the poison head/tail */
-    memset(head, FREE_FILL_PATTERN, head->alloc_size + POISON_OVERHEAD);
-#endif
-
-    multi_heap_aligned_free_impl(heap, head);
-    multi_heap_internal_unlock(heap);
-}
-
 void multi_heap_free(multi_heap_handle_t heap, void *p)
 {
     if (p == NULL) {
