@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <sys/param.h>
 #include <string.h>
+#include <malloc.h>
 
 TEST_CASE("Capabilities aligned allocator test", "[heap]")
 {
@@ -19,7 +20,7 @@ TEST_CASE("Capabilities aligned allocator test", "[heap]")
     printf("[ALIGNED_ALLOC] Allocating from default CAP: \n");
     
     for(;alignments <= 1024; alignments++) {
-        uint8_t *buf = (uint8_t *)heap_caps_aligned_alloc(alignments, (alignments + 137), MALLOC_CAP_DEFAULT);
+        uint8_t *buf = (uint8_t *)memalign(alignments, (alignments + 137));
         if(((alignments & (alignments - 1)) != 0) || (!alignments)) {
             TEST_ASSERT( buf == NULL );
             //printf("[ALIGNED_ALLOC] alignment: %u is not a power of two, don't allow allocation \n", aligments);
@@ -40,7 +41,7 @@ TEST_CASE("Capabilities aligned allocator test", "[heap]")
             //canary verification will fail:
             memset(buf, 0xA5, (alignments + 137));
 
-            heap_caps_free(buf);    
+            free(buf);    
         }
     } 
 

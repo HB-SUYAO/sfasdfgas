@@ -261,6 +261,11 @@ void multi_heap_free(multi_heap_handle_t heap, void *p)
     multi_heap_internal_unlock(heap);
 }
 
+void multi_heap_aligned_free(multi_heap_handle_t heap, void *p)
+{
+    multi_heap_free(heap, p);
+}
+
 void *multi_heap_realloc(multi_heap_handle_t heap, void *p, size_t size)
 {
     poison_head_t *head = NULL;
@@ -322,17 +327,6 @@ void *multi_heap_get_block_address(multi_heap_block_handle_t block)
     return head + sizeof(poison_head_t);
 }
 
-size_t multi_heap_get_allocated_size(multi_heap_handle_t heap, void *p)
-{
-    poison_head_t *head = verify_allocated_region(p, true);
-    assert(head != NULL);
-    size_t result = multi_heap_get_allocated_size_impl(heap, head);
-    if (result > 0) {
-        return result - POISON_OVERHEAD;
-    }
-    return 0;
-}
-
 void *multi_heap_get_block_owner(multi_heap_block_handle_t block)
 {
     return MULTI_HEAP_GET_BLOCK_OWNER((poison_head_t*)multi_heap_get_block_address_impl(block));
@@ -352,6 +346,14 @@ static inline void subtract_poison_overhead(size_t *arg) {
     } else {
         *arg = 0;
     }
+}
+
+size_t multi_heap_get_allocated_size(multi_heap_handle_t heap, void *p)
+{
+    poison_head_t *head = verify_allocated_region(p, true);
+    assert(head != NULL);
+    size_t result = multi_heap_get_allocated_size_impl(heap, head);
+    return result;
 }
 
 void multi_heap_get_info(multi_heap_handle_t heap, multi_heap_info_t *info)

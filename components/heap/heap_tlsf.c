@@ -1,10 +1,39 @@
-#include <assert.h>
-#include <limits.h>
-#include <stddef.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+/*
+** Two Level Segregated Fit memory allocator, version 3.1.
+** Written by Matthew Conte
+**	http://tlsf.baisoku.org
+**
+** Based on the original documentation by Miguel Masmano:
+**	http://www.gii.upv.es/tlsf/main/docs
+**
+** This implementation was written to the specification
+** of the document, therefore no GPL restrictions apply.
+** 
+** Copyright (c) 2006-2016, Matthew Conte
+** All rights reserved.
+** 
+** Redistribution and use in source and binary forms, with or without
+** modification, are permitted provided that the following conditions are met:
+**     * Redistributions of source code must retain the above copyright
+**       notice, this list of conditions and the following disclaimer.
+**     * Redistributions in binary form must reproduce the above copyright
+**       notice, this list of conditions and the following disclaimer in the
+**       documentation and/or other materials provided with the distribution.
+**     * Neither the name of the copyright holder nor the
+**       names of its contributors may be used to endorse or promote products
+**       derived from this software without specific prior written permission.
+** 
+** THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+** ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+** WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+** DISCLAIMED. IN NO EVENT SHALL MATTHEW CONTE BE LIABLE FOR ANY
+** DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+** (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+** LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+** ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+** (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+** SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 #include "multi_heap_config.h"
 #include "multi_heap.h"
 #include "multi_heap_internal.h"
@@ -27,11 +56,6 @@
 ** NOTE: TLSF spec relies on ffs/fls returning value 0..31.
 ** ffs/fls return 1-32 by default, returning 0 for error.
 */
-
-/*
-** Detect whether or not we are building for a 32- or 64-bit (LP/LLP)
-** architecture. There is no reliable portable method at compile-time.
-*/
 static inline __attribute__((__always_inline__)) int tlsf_ffs(unsigned int word)
 {
 	const unsigned int reverse = word & (~word + 1);
@@ -39,18 +63,16 @@ static inline __attribute__((__always_inline__)) int tlsf_ffs(unsigned int word)
 	return bit - 1;
 }
 
-
 static inline __attribute__((__always_inline__)) int tlsf_fls(unsigned int word)
 {
 	const int bit = word ? 32 - __builtin_clz(word) : 0;
 	return bit - 1;
 }
 
-
-
 /*
 ** Set assert macro, if it has not been provided by the user.
 */
+#define tlsf_assert(x) 
 #if !defined (tlsf_assert)
 #define tlsf_assert assert
 #endif
@@ -73,145 +95,6 @@ tlsf_static_assert(sizeof(unsigned int) * CHAR_BIT >= SL_INDEX_COUNT);
 
 /* Ensure we've properly tuned our sizes. */
 tlsf_static_assert(ALIGN_SIZE == SMALL_BLOCK_SIZE / SL_INDEX_COUNT);
-
-/*
-** Data structures and associated constants.
-*/
-
-/*
-** Since block sizes are always at least a multiple of 4, the two least
-** significant bits of the size field are used to store the block status:
-** - bit 0: whether block is busy or free
-** - bit 1: whether previous block is busy or free
-*/
-static const size_t block_header_free_bit = 1 << 0;
-static const size_t block_header_prev_free_bit = 1 << 1;
-
-/*
-** The size of the block header exposed to used blocks is the size field.
-** The prev_phys_block field is stored *inside* the previous free block.
-*/
-static const size_t block_header_overhead = sizeof(size_t);
-
-/* User data starts directly after the size field in a used block. */
-static const size_t block_start_offset =
-	offsetof(block_header_t, size) + sizeof(size_t);
-
-/*
-** A free block must be large enough to store its header minus the size of
-** the prev_phys_block field, and no larger than the number of addressable
-** bits for FL_INDEX.
-*/
-static const size_t block_size_min = 
-	sizeof(block_header_t) - sizeof(block_header_t*);
-static const size_t block_size_max = tlsf_cast(size_t, 1) << FL_INDEX_MAX;
-
-/*
-** block_header_t member functions.
-*/
-
-static inline __attribute__((__always_inline__)) size_t block_size(const block_header_t* block)
-{
-	return block->size & ~(block_header_free_bit | block_header_prev_free_bit);
-}
-
-static inline __attribute__((__always_inline__)) void block_set_size(block_header_t* block, size_t size)
-{
-	const size_t oldsize = block->size;
-	block->size = size | (oldsize & (block_header_free_bit | block_header_prev_free_bit));
-}
-
-static inline __attribute__((__always_inline__)) int block_is_last(const block_header_t* block)
-{
-	return block_size(block) == 0;
-}
-
-static inline __attribute__((__always_inline__)) int block_is_free(const block_header_t* block)
-{
-	return tlsf_cast(int, block->size & block_header_free_bit);
-}
-
-static inline __attribute__((__always_inline__)) void block_set_free(block_header_t* block)
-{
-	block->size |= block_header_free_bit;
-}
-
-static inline __attribute__((__always_inline__)) void block_set_used(block_header_t* block)
-{
-	block->size &= ~block_header_free_bit;
-}
-
-static inline __attribute__((__always_inline__)) int block_is_prev_free(const block_header_t* block)
-{
-	return tlsf_cast(int, block->size & block_header_prev_free_bit);
-}
-
-static inline __attribute__((__always_inline__)) void block_set_prev_free(block_header_t* block)
-{
-	block->size |= block_header_prev_free_bit;
-}
-
-static inline __attribute__((__always_inline__)) void block_set_prev_used(block_header_t* block)
-{
-	block->size &= ~block_header_prev_free_bit;
-}
-
-static inline __attribute__((__always_inline__)) block_header_t* block_from_ptr(const void* ptr)
-{
-	return tlsf_cast(block_header_t*,
-		tlsf_cast(unsigned char*, ptr) - block_start_offset);
-}
-
-static inline __attribute__((__always_inline__)) void* block_to_ptr(const block_header_t* block)
-{
-	return tlsf_cast(void*,
-		tlsf_cast(unsigned char*, block) + block_start_offset);
-}
-
-/* Return location of next block after block of given size. */
-static inline __attribute__((__always_inline__)) block_header_t* offset_to_block(const void* ptr, size_t size)
-{
-	return tlsf_cast(block_header_t*, tlsf_cast(tlsfptr_t, ptr) + size);
-}
-
-/* Return location of previous block. */
-static inline __attribute__((__always_inline__)) block_header_t* block_prev(const block_header_t* block)
-{
-	tlsf_assert(block_is_prev_free(block) && "previous block must be free");
-	return block->prev_phys_block;
-}
-
-/* Return location of next existing block. */
-static inline __attribute__((__always_inline__)) block_header_t* block_next(const block_header_t* block)
-{
-	block_header_t* next = offset_to_block(block_to_ptr(block),
-		block_size(block) - block_header_overhead);
-	tlsf_assert(!block_is_last(block));
-	return next;
-}
-
-/* Link a new block with its physical neighbor, return the neighbor. */
-static inline __attribute__((__always_inline__)) block_header_t* block_link_next(block_header_t* block)
-{
-	block_header_t* next = block_next(block);
-	next->prev_phys_block = block;
-	return next;
-}
-
-static inline __attribute__((__always_inline__)) void block_mark_as_free(block_header_t* block)
-{
-	/* Link the block to the next block, first. */
-	block_header_t* next = block_link_next(block);
-	block_set_prev_free(next);
-	block_set_free(block);
-}
-
-static inline __attribute__((__always_inline__)) void block_mark_as_used(block_header_t* block)
-{
-	block_header_t* next = block_next(block);
-	block_set_prev_used(next);
-	block_set_used(block);
-}
 
 static inline __attribute__((__always_inline__)) size_t align_up(size_t x, size_t align)
 {
@@ -265,7 +148,7 @@ static inline __attribute__((__always_inline__)) void mapping_insert(size_t size
 	{
 		/* Store small blocks in first list. */
 		fl = 0;
-		sl = tlsf_cast(int, size) / (SMALL_BLOCK_SIZE / SL_INDEX_COUNT);
+		sl = tlsf_cast(int, size) >> 2;
 	}
 	else
 	{
@@ -504,7 +387,7 @@ static inline __attribute__((__always_inline__)) block_header_t* block_trim_free
 	return remaining_block;
 }
 
-static inline __attribute__((__always_inline__)) block_header_t* block_locate_free(control_t* control, size_t size)
+static inline  __attribute__((__always_inline__)) block_header_t* block_locate_free(control_t* control, size_t size)
 {
 	int fl = 0, sl = 0;
 	block_header_t* block = 0;
@@ -833,15 +716,15 @@ tlsf_t tlsf_create_with_pool(void* mem, size_t bytes)
 	return tlsf;
 }
 
-void* __attribute__((optimize("-O3")))tlsf_malloc(tlsf_t tlsf, size_t size)
+void* tlsf_malloc(tlsf_t tlsf, size_t size)
 {
 	control_t* control = tlsf_cast(control_t*, tlsf);
-	const size_t adjust = adjust_request_size(size, ALIGN_SIZE);
+	size_t adjust = adjust_request_size(size, ALIGN_SIZE);
 	block_header_t* block = block_locate_free(control, adjust);
 	return block_prepare_used(control, block, adjust);
 }
 
-void* __attribute__((optimize("-O3")))tlsf_memalign(tlsf_t tlsf, size_t align, size_t size)
+void* tlsf_memalign(tlsf_t tlsf, size_t align, size_t size)
 {
 	control_t* control = tlsf_cast(control_t*, tlsf);
 	const size_t adjust = adjust_request_size(size, ALIGN_SIZE);
@@ -898,7 +781,7 @@ void* __attribute__((optimize("-O3")))tlsf_memalign(tlsf_t tlsf, size_t align, s
 	return block_prepare_used(control, block, adjust);
 }
 
-void __attribute__((optimize("-O3"))) tlsf_free(tlsf_t tlsf, void* ptr)
+void tlsf_free(tlsf_t tlsf, void* ptr)
 {
 	/* Don't attempt to free a NULL pointer. */
 	if (ptr)
@@ -926,7 +809,7 @@ void __attribute__((optimize("-O3"))) tlsf_free(tlsf_t tlsf, void* ptr)
 ** - an extended buffer size will leave the newly-allocated area with
 **   contents undefined
 */
-void* __attribute__((optimize("-O3"))) tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size)
+void* tlsf_realloc(tlsf_t tlsf, void* ptr, size_t size)
 {
 	control_t* control = tlsf_cast(control_t*, tlsf);
 	void* p = 0;

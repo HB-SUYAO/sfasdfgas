@@ -94,3 +94,6 @@
 #ifndef IDF_PERFORMANCE_MAX_SCHEDULING_TIME
 #define IDF_PERFORMANCE_MAX_SCHEDULING_TIME                                     1500
 #endif
+#define IDF_PERFORMANCE_MAX_MALLOC_DEFAULT_AVERAGE_TIME                         2600
+#define IDF_PERFORMANCE_MAX_FREE_DEFAULT_AVERAGE_TIME                           950
+

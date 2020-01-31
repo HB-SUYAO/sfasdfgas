@@ -38,6 +38,9 @@ void *multi_heap_malloc(multi_heap_handle_t heap, size_t size)
 void *multi_heap_aligned_alloc(multi_heap_handle_t heap, size_t size, size_t alignment)
     __attribute__((alias("multi_heap_aligned_alloc_impl")));
 
+void multi_heap_aligned_free(multi_heap_handle_t heap, void *p)
+    __attribute__((alias("multi_heap_free_impl")));
+
 void multi_heap_free(multi_heap_handle_t heap, void *p)
     __attribute__((alias("multi_heap_free_impl")));
 
@@ -101,7 +104,7 @@ static inline size_t block_data_size(const block_header_t *block)
 static void assert_valid_block(const heap_t *heap, const block_header_t *block)
 {
     pool_t pool = tlsf_get_pool(heap->heap_data);
-    void *ptr = tlsf_cast(void*, tlsf_cast(unsigned char*, block) + 16UL);
+    void *ptr = block_to_ptr(block);
 
     MULTI_HEAP_ASSERT((ptr >= pool) && 
                     (ptr < pool + heap->pool_size), 
@@ -110,7 +113,7 @@ static void assert_valid_block(const heap_t *heap, const block_header_t *block)
 
 void *multi_heap_get_block_address_impl(multi_heap_block_handle_t block)
 {
-    void *ptr = tlsf_cast(void*, tlsf_cast(unsigned char*, block) + 16UL);
+    void *ptr = block_to_ptr(block);
     return (ptr);
 }
 
@@ -122,7 +125,10 @@ size_t multi_heap_get_allocated_size_impl(multi_heap_handle_t heap, void *p)
 multi_heap_handle_t multi_heap_register_impl(void *start_ptr, size_t size)
 {
     assert(start_ptr);
-    assert(size >= tlsf_size() + tlsf_block_size_min() + sizeof(heap_t));
+    if(size < (tlsf_size() + tlsf_block_size_min() + sizeof(heap_t))) {
+        //Region too small to be a heap.
+        return NULL;
+    }
 
     heap_t *result = (heap_t *)start_ptr;
     size -= sizeof(heap_t);
@@ -158,7 +164,7 @@ multi_heap_block_handle_t multi_heap_get_first_block(multi_heap_handle_t heap)
 {
     assert(heap != NULL);
     pool_t pool = tlsf_get_pool(heap->heap_data);
-    block_header_t* block = tlsf_cast(block_header_t*, tlsf_cast(tlsfptr_t, pool) + (-8));
+    block_header_t* block = offset_to_block(pool, -(int)block_header_overhead);
 
     return (multi_heap_block_handle_t)block;
 }
@@ -167,8 +173,7 @@ multi_heap_block_handle_t multi_heap_get_next_block(multi_heap_handle_t heap, mu
 {
     assert(heap != NULL);
     assert_valid_block(heap, block);
-    void *ptr = tlsf_cast(void*, tlsf_cast(unsigned char*, block) + 16UL);
-    block_header_t* next = tlsf_cast(block_header_t*, tlsf_cast(tlsfptr_t, ptr) + block_data_size(block) - 8UL);;
+    block_header_t* next = block_next(block);
  
     if(block_data_size(next) == 0) {
         //Last block:
@@ -395,7 +400,6 @@ static void multi_heap_get_info_tlsf(void* ptr, size_t size, int used, void* use
     
     if(used) {
         info->allocated_blocks++;
-        info->total_allocated_bytes += size;
     } else {
         info->free_blocks++;
         
@@ -417,6 +421,7 @@ void multi_heap_get_info_impl(multi_heap_handle_t heap, multi_heap_info_t *info)
 
     multi_heap_internal_lock(heap);
     tlsf_walk_pool(tlsf_get_pool(heap->heap_data), multi_heap_get_info_tlsf, info);
+    info->total_allocated_bytes = (heap->pool_size - tlsf_size()) - heap->free_bytes;
     info->minimum_free_bytes = heap->minimum_free_bytes;
     info->total_free_bytes = heap->free_bytes;
     info->largest_free_block = info->largest_free_block ? 1 << (31 - __builtin_clz(info->largest_free_block)) : 0;

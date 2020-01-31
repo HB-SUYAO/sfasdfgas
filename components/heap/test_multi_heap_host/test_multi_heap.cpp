@@ -351,25 +351,26 @@ TEST_CASE("multi_heap_get_info() function", "[multi_heap]")
 
 TEST_CASE("multi_heap minimum-size allocations", "[multi_heap]")
 {
-    uint8_t heapdata[16384];
+    uint8_t heapdata[4096];
     void *p[sizeof(heapdata) / sizeof(void *)] = {NULL};
     const size_t NUM_P = sizeof(p) / sizeof(void *);
+    size_t allocated_size = 0;
     multi_heap_handle_t heap = multi_heap_register(heapdata, sizeof(heapdata));
-
     size_t before_free = multi_heap_free_size(heap);
 
     size_t i;
     for (i = 0; i < NUM_P; i++) {
+        //TLSF minimum block size is 4 bytes
         p[i] = multi_heap_malloc(heap, 1);
         if (p[i] == NULL) {
             break;
-        }
+        } 
     }
 
     REQUIRE( i < NUM_P); // Should have run out of heap before we ran out of pointers
     printf("Allocated %zu minimum size chunks\n", i);
-
-    //REQUIRE( 0 == multi_heap_free_size(heap) );
+    
+    REQUIRE(multi_heap_free_size(heap) < before_free);
     multi_heap_check(heap, true);
 
     /* Free in random order */
@@ -445,17 +446,9 @@ TEST_CASE("multi_heap_realloc()", "[multi_heap]")
 #endif
 }
 
-TEST_CASE("corrupt heap block", "[multi_heap]")
-{
-    uint8_t small_heap[10 * 1024];
-    multi_heap_handle_t heap = multi_heap_register(small_heap, sizeof(small_heap));
-
-    void *a = multi_heap_malloc(heap, 32);
-    REQUIRE( multi_heap_check(heap, true) );
-    memset(a, 0xEE, 64);
-    //REQUIRE( !multi_heap_check(heap, true) ); //TLSF check internal has asserts in place which causes
-                                                //false test fail
-}
+//TEST_CASE("corrupt heap block", "[multi_heap]"), this 
+// test will crash since heap check failling will trigger
+// an assert failure.
 
 // TLSF only accepts heaps aligned to 4-byte boundary so
 // unaligned test does not make sense

@@ -119,8 +119,8 @@ TEST_CASE("IRAM_8BIT capability test", "[heap]")
 
     TEST_ASSERT((((int)ptr)&0xFF000000)==0x40000000);
 
-    TEST_ASSERT(heap_caps_get_free_size(MALLOC_CAP_IRAM_8BIT) == (free_size - largest_free_size));
-    TEST_ASSERT(heap_caps_get_free_size(MALLOC_CAP_32BIT) == (free_size32 - largest_free_size));
+    TEST_ASSERT(heap_caps_get_free_size(MALLOC_CAP_IRAM_8BIT) == (free_size - heap_caps_get_allocated_size(ptr)));
+    TEST_ASSERT(heap_caps_get_free_size(MALLOC_CAP_32BIT) == (free_size32 - heap_caps_get_allocated_size(ptr)));
 
     free(ptr);
 }
@@ -131,7 +131,6 @@ TEST_CASE("heap_caps metadata test", "[heap]")
     /* need to print something as first printf allocates some heap */
     printf("heap_caps metadata test\n");
     heap_caps_print_heap_info(MALLOC_CAP_8BIT);
-    heap_caps_print_heap_info(MALLOC_CAP_32BIT);
 
     multi_heap_info_t original;
     heap_caps_get_info(&original, MALLOC_CAP_8BIT);
@@ -149,6 +148,10 @@ TEST_CASE("heap_caps metadata test", "[heap]")
 
     free(b);
     heap_caps_get_info(&after, MALLOC_CAP_8BIT);
+    
+    printf("\n\n After test, heap status:\n");
+    heap_caps_print_heap_info(MALLOC_CAP_8BIT);
+
     /* Allow some leeway here, because LWIP sometimes allocates up to 144 bytes in the background
        as part of timer management.
     */
@@ -156,6 +159,8 @@ TEST_CASE("heap_caps metadata test", "[heap]")
     TEST_ASSERT_INT32_WITHIN(200, after.largest_free_block, original.largest_free_block);
     TEST_ASSERT(after.minimum_free_bytes < original.total_free_bytes);
 }
+
+#ifndef CONFIG_SPIRAM
 
 /* Small function runs from IRAM to check that malloc/free/realloc
    all work OK when cache is disabled...
@@ -165,9 +170,9 @@ static IRAM_ATTR __attribute__((noinline)) bool iram_malloc_test(void)
     spi_flash_guard_get()->start(); // Disables flash cache
 
     bool result = true;
-    void *x = heap_caps_malloc(64, MALLOC_CAP_DEFAULT);
+    void *x = heap_caps_malloc(64, MALLOC_CAP_EXEC);
     result = result && (x != NULL);
-    void *y = heap_caps_realloc(x, 32, MALLOC_CAP_DEFAULT);
+    void *y = heap_caps_realloc(x, 32, MALLOC_CAP_EXEC);
     result = result && (y != NULL);
     heap_caps_free(y);
 
@@ -176,7 +181,10 @@ static IRAM_ATTR __attribute__((noinline)) bool iram_malloc_test(void)
     return result;
 }
 
+
 TEST_CASE("heap_caps_xxx functions work with flash cache disabled", "[heap]")
 {
     TEST_ASSERT( iram_malloc_test() );
 }
+
+#endif
