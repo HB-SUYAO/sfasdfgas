@@ -209,7 +209,6 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 	}
 	#endif
 
-	//vTaskSuspendAll();
 	taskENTER_CRITICAL( &pxEventBits->eventGroupMux );
 	{
 		uxOriginalBitValue = pxEventBits->uxEventBits;
@@ -255,7 +254,6 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 	}
 	
 	taskEXIT_CRITICAL( &pxEventBits->eventGroupMux );
-	//xAlreadyYielded = xTaskResumeAll();
 
 	if( xTicksToWait != ( TickType_t ) 0 )
 	{
@@ -335,7 +333,6 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 	}
 	#endif
 
-	//vTaskSuspendAll();
 	taskENTER_CRITICAL( &pxEventBits->eventGroupMux );
 	{
 		const EventBits_t uxCurrentEventBits = pxEventBits->uxEventBits;
@@ -406,7 +403,6 @@ BaseType_t xTimeoutOccurred = pdFALSE;
 	}
 
 	taskEXIT_CRITICAL( &pxEventBits->eventGroupMux );
-	//( void )xTaskResumeAll();
 
 	if( xTicksToWait != ( TickType_t ) 0 )
 	{
@@ -538,7 +534,6 @@ BaseType_t xMatchFound = pdFALSE;
 	pxList = &( pxEventBits->xTasksWaitingForBits );
 	pxListEnd = listGET_END_MARKER( pxList ); /*lint !e826 !e740 !e9087 The mini list structure is used as the list end to save RAM.  This is checked and valid. */
 
-	//vTaskSuspendAll();
 	taskENTER_CRITICAL( &pxEventBits->eventGroupMux );
 	{
 		traceEVENT_GROUP_SET_BITS( xEventGroup, uxBitsToSet );
@@ -612,7 +607,6 @@ BaseType_t xMatchFound = pdFALSE;
 		pxEventBits->uxEventBits &= ~uxBitsToClear;
 	}
 	taskEXIT_CRITICAL( &pxEventBits->eventGroupMux );
-	//( void ) xTaskResumeAll();
 
 	return pxEventBits->uxEventBits;
 }
@@ -623,7 +617,6 @@ void vEventGroupDelete( EventGroupHandle_t xEventGroup )
 EventGroup_t *pxEventBits = xEventGroup;
 const List_t *pxTasksWaitingForBits = &( pxEventBits->xTasksWaitingForBits );
 
-	//vTaskSuspendAll();
 	traceEVENT_GROUP_DELETE( xEventGroup );
 
 	taskENTER_CRITICAL( &pxEventBits->eventGroupMux );
@@ -658,7 +651,6 @@ const List_t *pxTasksWaitingForBits = &( pxEventBits->xTasksWaitingForBits );
 		}
 	}
 	#endif /* configSUPPORT_DYNAMIC_ALLOCATION */
-	//( void )//xTaskResumeAll();
 }
 /*-----------------------------------------------------------*/
 

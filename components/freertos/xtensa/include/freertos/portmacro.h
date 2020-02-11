@@ -312,7 +312,7 @@ static inline void __attribute__((always_inline)) uxPortCompareSet(volatile uint
 
 static inline void uxPortCompareSetExtram(volatile uint32_t *addr, uint32_t compare, uint32_t *set) 
 {
-#if defined(CONFIG_ESP32_SPIRAM_SUPPORT)    
+#if defined(CONFIG_ESP32_SPIRAM_SUPPORT) || defined(ESP32S2_SPIRAM_SUPPORT)   
     compare_and_set_extram(addr, compare, set);
 #endif    
 }
@@ -462,12 +462,7 @@ BaseType_t xPortInterruptedFromISRContext(void);
 
 /* Multi-core: get current core ID */
 static inline uint32_t IRAM_ATTR xPortGetCoreID(void) {
-    int id;
-    asm (
-        "rsr.prid %0\n"
-        " extui %0,%0,13,1"
-        :"=r"(id));
-    return id;
+    return cpu_hal_get_core_id();
 }
 
 /* Get tick rate per second */
@@ -489,7 +484,6 @@ static inline bool IRAM_ATTR xPortCanYield(void)
 
     return ((ps_reg & PS_INTLEVEL_MASK) == 0);
 }
-
 
 // porttrace
 #if configUSE_TRACE_FACILITY_2

@@ -123,6 +123,17 @@ menu "FreeRTOS"
             lower level interrupt.
             This option adds 4 instructions to the interrupt dispatching code.
 
+    config FREERTOS_THREAD_LOCAL_STORAGE_POINTERS
+        int "Number of thread local storage pointers"
+        range 1 256
+        default 1
+        help
+            FreeRTOS has the ability to store per-thread pointers in the task
+            control block. This controls the number of pointers available.
+
+            This value must be at least 1. Index 0 is reserved for use by the pthreads API
+            thread-local-storage. Other indexes can be used for any desired purpose.
+
     choice FREERTOS_ASSERT
         prompt "FreeRTOS assertions"
         default FREERTOS_ASSERT_FAIL_ABORT
@@ -292,6 +303,14 @@ menu "FreeRTOS"
             If enabled, configUSE_STATS_FORMATTING_FUNCTIONS will be defined as 1 in
             FreeRTOS. This will allow the usage of stats formatting functions such
             as vTaskList().
+
+    config FREERTOS_VTASKLIST_INCLUDE_COREID
+        bool "Enable display of xCoreID in vTaskList"
+        depends on FREERTOS_USE_STATS_FORMATTING_FUNCTIONS
+        default n
+        help
+            If enabled, this will include an extra column when vTaskList is called
+            to display the CoreID the task is pinned to (0,1) or -1 if not pinned.
 
     config FREERTOS_GENERATE_RUN_TIME_STATS
         bool "Enable FreeRTOS to collect run time stats"

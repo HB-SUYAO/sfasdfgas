@@ -267,7 +267,6 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
 										   xTriggerLevelBytes,
 										   ucFlags );
 
-			vPortCPUInitializeMutex( &( ( StreamBuffer_t *)pucAllocatedMemory)->xStreamBufferMux );
 			traceSTREAM_BUFFER_CREATE( ( ( StreamBuffer_t * ) pucAllocatedMemory ), xIsMessageBuffer );
 		}
 		else
@@ -338,8 +337,6 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
 										  xBufferSizeBytes,
 										  xTriggerLevelBytes,
 										  ucFlags );
-
-			vPortCPUInitializeMutex( &pxStreamBuffer->xStreamBufferMux );
 			/* Remember this was statically allocated in case it is ever deleted
 			again. */
 			pxStreamBuffer->ucFlags |= sbFLAGS_IS_STATICALLY_ALLOCATED;
@@ -1234,7 +1231,7 @@ static void prvInitialiseNewStreamBuffer( StreamBuffer_t * const pxStreamBuffer,
 	pxStreamBuffer->xLength = xBufferSizeBytes;
 	pxStreamBuffer->xTriggerLevelBytes = xTriggerLevelBytes;
 	pxStreamBuffer->ucFlags = ucFlags;
-	
+	vPortCPUInitializeMutex( &pxStreamBuffer->xStreamBufferMux );
 }
 
 #if ( configUSE_TRACE_FACILITY == 1 )

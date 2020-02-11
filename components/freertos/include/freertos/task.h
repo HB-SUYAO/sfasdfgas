@@ -664,7 +664,7 @@ is used in assert() statements. */
  * {
  *  	vATask,		// pvTaskCode - the function that implements the task.
  * 	"ATask",	// pcName - just a text name for the task to assist debugging.
- *  	100,		// usStackDepth	- the stack size DEFINED IN WORDS.
+ *  	100,		// usStackDepth	- the stack size DEFINED IN BYTES.
  * 	NULL,		// pvParameters - passed into the task function as the function parameters.
  *	( 1UL | portPRIVILEGE_BIT ),// uxPriority - task priority, set the portPRIVILEGE_BIT if the task should run in a privileged state.
  *	cStackBuffer,// puxStackBuffer - the buffer to be used as the task stack.

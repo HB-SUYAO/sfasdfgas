@@ -13,12 +13,12 @@
 // limitations under the License.
 
 #include "xtensa_rtos.h"
-#include "esp_debug_helpers.h"
+#include "esp_private/panic_reason.h"
 #include "sdkconfig.h"
 #include "soc/soc.h"
 
 /*
-This file contains the default handlers for the high interrupt levels as well as some specialized exceptions. 
+This file contains the default handlers for the high interrupt levels as well as some specialized exceptions.
 The default behaviour is to just exit the interrupt or call the panic handler on the exceptions
 */
 
@@ -32,7 +32,7 @@ The default behaviour is to just exit the interrupt or call the panic handler on
     .align      4
 
 _xt_debugexception:
-    //movi    a0,PANIC_RSN_DEBUGEXCEPTION
+    movi    a0,PANIC_RSN_DEBUGEXCEPTION
     wsr     a0,EXCCAUSE
     /* _xt_panic assumes a level 1 exception. As we're
        crashing anyhow, copy EPC & EXCSAVE from DEBUGLEVEL
