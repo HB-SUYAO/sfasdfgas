@@ -60,9 +60,9 @@ enum tlsf_config
 	** blocks below that size into the 0th first-level list.
 	*/
 
-    /* Tunning the first level, we can reduce TLSF pool overhead 
-     * in exchange of manage a pool smaller than 4GB
-     */ 
+	/* Tunning the first level, we can reduce TLSF pool overhead 
+	 * in exchange of manage a pool smaller than 4GB
+	 */ 
 	FL_INDEX_MAX = 30,
 
 	SL_INDEX_COUNT = (1 << SL_INDEX_COUNT_LOG2),

@@ -26,12 +26,6 @@ TEST_CASE("Heap many random allocations timings", "[heap]")
     uint64_t realloc_time_average = 0;
 
     for (int i = 0; i < ITERATIONS; i++) {
-        /* check all pointers allocated so far are valid inside big_heap */
-        for (int j = 0; j < NUM_POINTERS; j++) {
-            if (p[j] != NULL) {
-            }
-        }
-
         uint8_t n = esp_random() % NUM_POINTERS;
 
         if (esp_random() % 4 == 0) {

@@ -27,7 +27,6 @@ typedef const struct block_header_t *multi_heap_block_handle_t;
 void *multi_heap_malloc_impl(multi_heap_handle_t heap, size_t size);
 void *multi_heap_aligned_alloc_impl(multi_heap_handle_t heap, size_t size, size_t alignment);
 void multi_heap_free_impl(multi_heap_handle_t heap, void *p);
-void multi_heap_aligned_free_impl(multi_heap_handle_t heap, void *p);
 void *multi_heap_realloc_impl(multi_heap_handle_t heap, void *p, size_t size);
 void *multi_heap_aligned_alloc_impl(multi_heap_handle_t heap, size_t size, size_t alignment);
 multi_heap_handle_t multi_heap_register_impl(void *start, size_t size);
