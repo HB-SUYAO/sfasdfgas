@@ -15,7 +15,6 @@
 /* Due nature of TLSF realloc may not shrink in place */
 TEST_CASE("realloc shrink buffer in place", "[heap][ignore]")
 {
-    void *p = NULL;
     void *x = malloc(64);
     TEST_ASSERT(x);
     void *y = realloc(x, 48);
@@ -24,6 +23,7 @@ TEST_CASE("realloc shrink buffer in place", "[heap][ignore]")
 
 #endif
 
+#ifndef CONFIG_ESP32S2_MEMPROT_FEATURE
 TEST_CASE("realloc shrink buffer with EXEC CAPS", "[heap]")
 {
     const size_t buffer_size = 64;
@@ -53,7 +53,7 @@ TEST_CASE("realloc move data to a new heap type", "[heap]")
     TEST_ASSERT_NOT_NULL(b);
     TEST_ASSERT_NOT_EQUAL(a, b);
     TEST_ASSERT(heap_caps_check_integrity(MALLOC_CAP_INVALID, true));
-    TEST_ASSERT_EQUAL_HEX32_ARRAY(buf, b, 64/sizeof(uint32_t));
+    TEST_ASSERT_EQUAL_HEX32_ARRAY(buf, b, 64 / sizeof(uint32_t));
 
     // Move data back to DRAM
     char *c = heap_caps_realloc(b, 48, MALLOC_CAP_8BIT);
@@ -64,3 +64,4 @@ TEST_CASE("realloc move data to a new heap type", "[heap]")
 
     free(c);
 }
+#endif
