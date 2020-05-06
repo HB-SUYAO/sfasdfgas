@@ -560,7 +560,8 @@ static int btc_ble_mesh_output_string_cb(const char *str)
 
     BT_DBG("%s", __func__);
 
-    strncpy(mesh_param.node_prov_output_str.string, str, strlen(str));
+    strncpy(mesh_param.node_prov_output_str.string, str,
+        MIN(strlen(str), sizeof(mesh_param.node_prov_output_str.string)));
 
     ret = btc_ble_mesh_prov_callback(&mesh_param, ESP_BLE_MESH_NODE_PROV_OUTPUT_STRING_EVT);
     return (ret == BT_STATUS_SUCCESS) ? 0 : -1;
@@ -1573,7 +1574,7 @@ void btc_ble_mesh_prov_call_handler(btc_msg_t *msg)
         break;
     case BTC_BLE_MESH_ACT_NODE_RESET:
         BT_DBG("%s, BTC_BLE_MESH_ACT_NODE_RESET", __func__);
-        bt_mesh_reset();
+        bt_mesh_node_reset();
         return;
     case BTC_BLE_MESH_ACT_SET_OOB_PUB_KEY:
         act = ESP_BLE_MESH_NODE_PROV_SET_OOB_PUB_KEY_COMP_EVT;

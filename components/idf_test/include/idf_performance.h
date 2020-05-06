@@ -92,7 +92,7 @@
 
 //time to perform the task selection plus context switch (from task)
 #ifndef IDF_PERFORMANCE_MAX_SCHEDULING_TIME
-#define IDF_PERFORMANCE_MAX_SCHEDULING_TIME                                     1500
+#define IDF_PERFORMANCE_MAX_SCHEDULING_TIME                                     2000
 #endif
 
 #ifndef IDF_PERFORMANCE_MAX_MALLOC_DEFAULT_AVERAGE_TIME

@@ -5721,6 +5721,26 @@ const TickType_t xConstTickCount = xTickCount;
 		}
 		pxTaskSnapshotArray[ *uxTask ].pxTCB = pxTCB;
 		pxTaskSnapshotArray[ *uxTask ].pxTopOfStack = (StackType_t *)pxTCB->pxTopOfStack;
+		pxTaskSnapshotArray[ *uxTask ].eState = eTaskGetState(pxTCB);
+		
+		if(pxTaskSnapshotArray[ *uxTask ].eState == eRunning) 
+		{
+			BaseType_t xCoreId = xPortGetCoreID();
+			/* task is running, let's find in which core it is located */
+			if(pxTCB == pxCurrentTCB[xCoreId])
+			{
+				pxTaskSnapshotArray[ *uxTask ].xCpuId = xCoreId;
+			}
+			else 
+			{
+				pxTaskSnapshotArray[ *uxTask ].xCpuId = !xCoreId;
+			}		
+		} 
+		else 
+		{
+			pxTaskSnapshotArray[ *uxTask ].xCpuId = -1;	
+		}
+		
 		#if( portSTACK_GROWTH < 0 )
 		{
 			pxTaskSnapshotArray[ *uxTask ].pxEndOfStack = pxTCB->pxEndOfStack;

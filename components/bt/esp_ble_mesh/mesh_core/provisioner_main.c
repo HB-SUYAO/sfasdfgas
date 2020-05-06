@@ -490,6 +490,8 @@ int bt_mesh_provisioner_restore_node_name(u16_t addr, const char *name)
     }
 
     strncpy(node->name, name, BLE_MESH_NODE_NAME_SIZE);
+    node->name[BLE_MESH_NODE_NAME_SIZE] = 0;
+
     return 0;
 }
 
@@ -625,7 +627,7 @@ int bt_mesh_provisioner_set_node_name(u16_t index, const char *name)
         }
     }
 
-    memset(mesh_nodes[index]->name, 0, BLE_MESH_NODE_NAME_SIZE);
+    memset(mesh_nodes[index]->name, 0, sizeof(mesh_nodes[index]->name));
     strncpy(mesh_nodes[index]->name, name, length);
 
     if (IS_ENABLED(CONFIG_BLE_MESH_SETTINGS)) {
@@ -1384,7 +1386,7 @@ int bt_mesh_provisioner_local_net_key_delete(u16_t net_idx)
             /* Delete any app keys bound to this NetKey index */
             for (j = 0; j < ARRAY_SIZE(bt_mesh.p_app_keys); j++) {
                 struct bt_mesh_app_key *key = bt_mesh.p_app_keys[j];
-                if (key->net_idx == sub->net_idx) {
+                if (key && key->net_idx == sub->net_idx) {
                     bt_mesh_provisioner_local_app_key_delete(key->net_idx, key->app_idx);
                 }
             }
